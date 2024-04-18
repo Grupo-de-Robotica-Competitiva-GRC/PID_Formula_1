@@ -9,8 +9,8 @@
 #define LED_VERMELHO 2
 #define B_dir 11
 #define ENABLE_B 10
-#define A_dir 5
-#define ENABLE_A 6
+#define A_dir 6
+#define ENABLE_A 5
 
 //----- CONSTANTES -----
 float Ki = 0; //para nao acumularmos tanto erro
@@ -150,13 +150,14 @@ void processa_serial() {
 void loop() {
 
   // atualizacao de Kp,Kd e Ki via bluetooth
-   if (Serial.available())
+  /* if (Serial.available())
   {
     while(Serial.available() == 0);
     ler_serial();
     processa_serial();
   }
-
+  */
+  
   // read calibrated sensor values and obtain a measure of the line position
   // from 0 to 7000 (for a white line, use readLineWhite() instead)
   uint16_t position = qtr.readLineBlack(sensorValues);
