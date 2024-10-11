@@ -35,7 +35,7 @@ pwm_A.start(0)
 pwm_B.start(0)
 
 # Configuração dos sensores
-sensor_pins = [33, 35, 37, 39, 41, 43, 45]
+sensor_pins = [5, 6, 13, 19, 26]
 
 def calculaPID():
     global P, I, D, PID, erro, erroAnterior
@@ -66,8 +66,8 @@ def controlaMotor():
 
 def lerSensores():
     # Cria uma lista para armazenar os valores lidos de cada sensor
-    sensor_values = [0] * 7
-    for i in range(7):
+    sensor_values = [0] * 5
+    for i in range(5):
         # Lê o valor de cada pino (0 ou 1)
         sensor_values[i] = GPIO.input(sensor_pins[i])
     
