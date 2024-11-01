@@ -20,22 +20,25 @@ erroAnterior = 0
 erro = 0
 
 # Velocidades padrão
-aVelo = 210
-bVelo = 210
+velo = 255
+aVelo = velo
+bVelo = velo 
+
 
 # Configuração dos sensores
-sensor_pins = [17,22,23,24]
+sensor_pins = [5,6,16,17,22,23,24,25]
 
 def calculaPID():
     global P, I, D, PID, erro, erroAnterior
+    global velo
     if erro == 0:
         I = 0
     P = erro
     I += erro
-    if I > 255:
-        I = 255
-    elif I < -255:
-        I = -255
+    if I > velo:
+        I = velo
+    elif I < -velo:
+        I = -velo
     D = erro - erroAnterior
     PID = (Kp * P) + (Ki * I) + (Kd * D)
     erroAnterior = erro
@@ -49,29 +52,40 @@ def controlaMotor():
         velEsq = bVelo + PID
         velDir = aVelo
     
-    IN1_pwm.ChangeDutyCycle(velEsq / 2.1)  # RPi.GPIO PWM usa valores de 0 a 100
-    IN3_pwm.ChangeDutyCycle(velDir / 2.1)  # Converte 0-255 para 0-100
+    IN1_pwm.ChangeDutyCycle(velEsq / 2.55)  # RPi.GPIO PWM usa valores de 0 a 100
+    IN3_pwm.ChangeDutyCycle(velDir / 2.55)  # Converte 0-255 para 0-100
 
+def calcular_erro(sensor_values):
+    erros = {
+        (0, 0, 0, 1, 1, 0, 0, 0): 0,
+        (0, 0, 0, 1, 0, 0, 0, 0): -0.5,
+        (0, 0, 1, 1, 0, 0, 0, 0): -1,
+        (0, 0, 1, 0, 0, 0, 0, 0): -1.5,
+        (0, 1, 1, 0, 0, 0, 0, 0): -2,
+        (0, 1, 0, 0, 0, 0, 0, 0): -2.5,
+        (1, 1, 0, 0, 0, 0, 0, 0): -3,
+        (1, 0, 0, 0, 0, 0, 0, 0): -3.5,
+        (0, 0, 0, 0, 1, 0, 0, 0): 0.5,
+        (0, 0, 0, 0, 1, 1, 0, 0): 1,
+        (0, 0, 0, 0, 0, 1, 0, 0): 1.5,
+        (0, 0, 0, 0, 0, 1, 1, 0): 2,
+        (0, 0, 0, 0, 0, 0, 1, 0): 2.5,
+        (0, 0, 0, 0, 0, 0, 1, 1): 3,
+        (0, 0, 0, 0, 0, 0, 0, 1): 3.5,
+    }
+    return erros.get(tuple(sensor_values), 0) # Talvez trocar esse none por algum valor
 
 def lerSensores():
     global erro
     # Cria uma lista para armazenar os valores lidos de cada sensor
-    sensor_values = [0] * 4
-    for i in range(4):
+    sensor_values = [0] * 8
+    for i in range(8):
         # Lê o valor de cada pino (0 ou 1)
         sensor_values[i] = GPIO.input(sensor_pins[i])
     
-    if (sensor_values == [0,1,1,0]): erro = 0
-    elif (sensor_values == [0,1,0,0]): erro = -1
-    elif (sensor_values == [0,0,1,0]): erro = 1
-    elif (sensor_values == [1,1,0,0]): erro = -2
-    elif (sensor_values == [0,0,1,1]): erro = 2
-    elif (sensor_values == [1,0,0,0]): erro = -3
-    elif (sensor_values == [0,0,0,1]): erro = 3
-    else: erro = 0                                      # revisar 
-    
+    erro = calcular_erro(sensor_values)
+    print(erro)
     #print(sensor_values,erro,sep='\t')
-    
 
 
 def setup():
@@ -83,10 +97,10 @@ def setup():
 
     # Configuração dos sensores 
     for pin in sensor_pins:
-        GPIO.setup(pin, GPIO.IN)
+        if pin not in [5,6,24,25]:
+            GPIO.setup(pin, GPIO.IN)
+        else: GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     
-        
-
 
 def loop():
     global erro, velEsq, velDir
@@ -112,24 +126,34 @@ def loop():
         IN3_pwm.stop()
         
         # Limpeza dos GPIOs
-        GPIO.cleanu;
+        GPIO.cleanup();
 
 if __name__ == '__main__':
     setup()
     
     # Configuração de PWM freq 1kHz
-    IN1_pwm = GPIO.PWM(IN1,500)
-    IN3_pwm = GPIO.PWM(IN3,500)
+    IN1_pwm = GPIO.PWM(IN1,16000)
+    IN3_pwm = GPIO.PWM(IN3,16000)
     
     IN1_pwm.start(0)
     IN3_pwm.start(0)
     try:
         loop()
     except KeyboardInterrupt:
-        IN1_pwm = GPIO.PWM(IN1,500)
-        IN3_pwm = GPIO.PWM(IN3,500)
+        IN1_pwm = GPIO.PWM(IN1,16000)
+        IN3_pwm = GPIO.PWM(IN3,16000)
     
         IN1_pwm.start(0)
         IN3_pwm.start(0)
         GPIO.cleanup()
         print("Programa interrompido e GPIO limpo.")
+    finally:
+        IN1_pwm.ChangeDutyCycle(0) # this prevents jitter
+        IN3_pwm.ChangeDutyCycle(0)
+        
+        #parando pwm
+        IN1_pwm.stop()
+        IN3_pwm.stop()
+        
+        # Limpeza dos GPIOs
+        GPIO.cleanup();
