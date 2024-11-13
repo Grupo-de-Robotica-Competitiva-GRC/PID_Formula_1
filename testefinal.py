@@ -53,8 +53,8 @@ def controlaMotor():
         velDir = aVelo
     
     # medo:
-    cycle_l = min((abs(velEsq)/2.55), 100))
-    cycle_r = min((abs(velDir)/2.55), 100))
+    cycle_l = min((abs(velEsq)/2.55), 100)
+    cycle_r = min((abs(velDir)/2.55), 100)
 
     INA_pwm.ChangeDutyCycle(cycle_l)  # RPi.GPIO PWM usa valores de 0 a 100
     INB_pwm.ChangeDutyCycle(cycle_r)  
