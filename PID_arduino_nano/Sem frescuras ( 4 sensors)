@@ -1,0 +1,109 @@
+#define M1_PWM 6   // Pino PWM para o 1º Motor
+#define M2_PWM 9  // Pino PWM para o 2º Motor
+#define dir1A 10    // Direção do 1º Motor A
+#define dir1B 11    // Direção do 1º Motor B
+#define dir2A 7     // Direção do 2º Motor A
+#define dir2B 8     // Direção do 2º Motor B
+
+// Definição dos pinos dos sensores de linha
+#define pin_S1 2   // Sensor 1
+#define pin_S2 3   // Sensor 2
+#define pin_S3 4   // Sensor 3
+#define pin_S4 5
+
+// Variáveis para armazenar o estado dos sensores
+bool Sensor1 = 0;
+bool Sensor2 = 0;
+bool Sensor3 = 0;
+bool Sensor4 = 0;
+
+// Velocidade base dos motores
+int velocidadeBase = 150;
+int velocidadeCurva = 80; // Velocidade reduzida para curvas
+
+void setup() {
+  // Configuração dos pinos dos motores como saída
+  pinMode(M1_PWM, OUTPUT);
+  pinMode(M2_PWM, OUTPUT);
+  pinMode(dir1A, OUTPUT);
+  pinMode(dir1B, OUTPUT);
+  pinMode(dir2A, OUTPUT);
+  pinMode(dir2B, OUTPUT);
+
+  // Configuração inicial dos motores para frente
+  digitalWrite(dir1A, HIGH);
+  digitalWrite(dir1B, LOW);
+  digitalWrite(dir2A, HIGH);
+  digitalWrite(dir2B, LOW);
+
+  // Configuração dos pinos dos sensores como entrada
+  pinMode(pin_S1, INPUT);
+  pinMode(pin_S2, INPUT);
+  pinMode(pin_S3, INPUT);
+  pinMode(pin_S4, INPUT);
+}
+
+void loop() {
+  // Leitura dos sensores
+  Sensor1 = digitalRead(pin_S1);
+  Sensor2 = digitalRead(pin_S2);
+  Sensor3 = digitalRead(pin_S3);
+  Sensor4 = digitalRead(pin_S4);
+
+  // Lógica de controle do seguidor de linha
+  if (Sensor1 == 0 && Sensor2 == 0 && Sensor3 == 0 && Sensor4 == 0) {
+    // Todos sensores em branco (fora da linha)
+    pararMotores();
+  } else if (Sensor2 == 1 && Sensor3 == 1) {
+    // Sensores centrais detectam linha (seguir em frente)
+    andarFrente(velocidadeBase);
+  } else if (Sensor1 == 1) {
+    // Sensor 1 detecta linha (virar para esquerda)
+    virarEsquerda(velocidadeCurva);
+  } else if (Sensor4 == 1) {
+    // Sensor 4 detecta linha (virar para direita)
+    virarDireita(velocidadeCurva);
+  } else if (Sensor2 == 1) {
+    // Apenas o sensor 2 detecta linha (ajuste fino à esquerda)
+    ajustarEsquerda();
+  } else if (Sensor3 == 1) {
+    // Apenas o sensor 3 detecta linha (ajuste fino à direita)
+    ajustarDireita();
+  }
+}
+
+// Função para parar os motores
+void pararMotores() {
+  analogWrite(M1_PWM, 0);
+  analogWrite(M2_PWM, 0);
+}
+
+// Função para mover o robô em frente
+void andarFrente(int velocidade) {
+  analogWrite(M1_PWM, velocidade);
+  analogWrite(M2_PWM, velocidade);
+}
+
+// Função para virar à esquerda
+void virarEsquerda(int velocidade) {
+  analogWrite(M1_PWM, velocidade);
+  analogWrite(M2_PWM, 0);
+}
+
+// Função para virar à direita
+void virarDireita(int velocidade) {
+  analogWrite(M1_PWM, 0);
+  analogWrite(M2_PWM, velocidade);
+}
+
+// Função para ajustar levemente à esquerda
+void ajustarEsquerda() {
+  analogWrite(M1_PWM, velocidadeBase);
+  analogWrite(M2_PWM, velocidadeCurva);
+}
+
+// Função para ajustar levemente à direita
+void ajustarDireita() {
+  analogWrite(M1_PWM, velocidadeCurva);
+  analogWrite(M2_PWM, velocidadeBase);
+}
