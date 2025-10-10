@@ -22,13 +22,13 @@ bool calibrando = false;
 uint8_t  sensorsPin[8] = {34, 35, 32, 33, 27, 26, 25, 14};
 uint16_t sensorValues[8];
 float Ki = 0; // para não acumular tanto erro
-int Kp = 50;   // valor padrão para nós
-int Kd = 98;   // ir ajustando até ficar bom
+int Kp = 38;  //ajustar paramento
+int Kd = 60;  //ajusta tamebem algem ve tutorial como ajustar.
 
 int P = 0, I = 0, D = 0, PID = 0; // variáveis PID
 int16_t velEsq = 0, velDir = 0, erroAnterior = 0; // controle dos motores
 int16_t erro = 0;  // cálculo do erro
-int bVelo, aVelo;
+int bVelo = 200, aVelo = 200;
 
 void move_motorA(int16_t vel)
 {
@@ -126,11 +126,18 @@ void moveCalibrar(void *pvParams) {
   digitalWrite(LED_CALIBRANDO, HIGH);
   for(int i = 0; i <= 200; i++) {
     //move motor A
-    move_motorA(512);
+    move_motorA(500);
     //move motor B
-    move_motorB(-512);
+    move_motorB(-500);
 
-    vTaskDelay(20 / portTICK_PERIOD_MS);
+    pararMotores();
+    vTaskDelay(200 / portTick_PERIOD_MS);
+
+    move_motorA(-500);
+    move_motorB(500);
+    pararMotores();
+
+    vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 
   pararMotores();
@@ -156,12 +163,14 @@ void seguidor(void *pvParams) {
   digitalWrite(LED_SEGUIDOR, HIGH);
   while (modoSeguidor) {
     qtr.read(sensorValues);
-    unsigned int pos = qtr.readLineBlack(sensorValues);
-    int erro = ((int)pos) - 3500;
-    int velBase = 200;
-    int Kp = 0.05 * erro;
-    move_motorA(velBase + Kp);
-    move_motorB(velBase - Kp);
+    calcula_erro();
+    calculaPID();
+    move_motorA(velEsq);
+    move_motorB(velDir);
+    if (digitalRead(LED_SEGUIDOR) == HIGH) 
+    {
+      modoSeguidor = false
+    }
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
   digitalWrite(LED_SEGUIDOR, LOW);
@@ -191,29 +200,22 @@ void setup() {
     // ledcWrite(15, 120);
 
 
-      // xTaskCreatePinnedToCore(moveCalibrar, "Mover", 4096, NULL, 1, NULL, 0);
-      xTaskCreatePinnedToCore(calibrar, "Calibrar", 4096, NULL, 1, NULL, 1);
+      
   }
 
 
   void loop() {
 
-    // if (digitalRead(BOTAO_CALIBRAR) == HIGH && !calibrando) {
-      // calibrando = true;
-      // calibrado = false;
+    if (digitalRead(BOTAO_CALIBRAR) == HIGH && !calibrando) {
+      calibrando = true;
+      calibrado = false;
       
       qtr.read(sensorValues);
-      // for(uint8_t i = 0; i < 8; i++)
-      // {
-      // Serial.printf("%d  ", sensorValues[i]); 
-
-
-      // delay(100);
-      // digitalWrite(2, HIGH);
-      // digitalWrite(4, HIGH);
+      xTaskCreatePinnedToCore(moveCalibrar, "Mover", 4096, NULL, 1, NULL, 0);
+      xTaskCreatePinnedToCore(calibrar, "Calibrar", 4096, NULL, 1, NULL, 1);
   
 
-      // } 
+    }
       Serial.println();
 
  
@@ -229,11 +231,11 @@ void setup() {
     // }
     // for (uint8_t i = 0; i < 255; i++) { Serial.println(i); delay(200); }
 
-    // if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !modoSeguidor) {
-    // modoSeguidor = true;
-    // xTaskCreatePinnedToCore(seguidor, "Seguidor", 4096, NULL, 1, NULL, 1);
-    // delay(500);
-    // }
+    if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !modoSeguidor) {
+      modoSeguidor = true;
+      xTaskCreatePinnedToCore(seguidor, "Seguidor", 4096, NULL, 1, NULL, 1);
+      delay(500);
+    }
 
 
   }
