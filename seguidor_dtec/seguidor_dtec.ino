@@ -189,7 +189,7 @@ void setup() {
     pinMode(BOTAO_CALIBRAR, INPUT);
     pinMode(BOTAO_SEGUIR, INPUT);
     // pinMode(EMITTER_PIN, OUTPUT); 
-    // Serial.println("presine o botao para calibra");
+    Serial.println("presine o botao para calibra");
     ledcAttachChannel(MOTOR_A1, 2000, 10, 0);
     ledcAttachChannel(MOTOR_A2, 2000, 10, 1);
     ledcAttachChannel(MOTOR_B1, 2000, 10, 2);
