@@ -1,26 +1,28 @@
 #include <Arduino.h>
 #include <QTRSensors.h>
+#include "esp32-hal-ledc.h"
+#include "driver/ledc.h"
 
 // ====== PINAGEM (ajuste conforme seu hardware) ======
 #define LED_CALIBRANDO 2
 #define LED_SEGUIDOR   4
-#define BOTAO_CALIBRAR 34
-#define BOTAO_SEGUIR   35
+#define BOTAO_CALIBRAR 12
+#define BOTAO_SEGUIR   13
 
 #define MOTOR_A1 25
 #define MOTOR_A2 26
 #define MOTOR_B1 27
 #define MOTOR_B2 14
-
+  
 #define emitterPin 15
 uint8_t  sensorsPin[8] = {32, 33, 34, 35, 36, 39, 38, 37};
 uint16_t sensorValues[8];
 
 QTRSensors qtr;
+#define timeCalibrate 200;
 
 
 // ====== CONFIGURAÇÃO LEDC ======
-#define LEDC_TIMER_BIT     8
 #define LEDC_BASE_FREQ     5000
 #define LEDC_TIMER         LEDC_TIMER_0
 #define LEDC_MODE          LEDC_HIGH_SPEED_MODE
@@ -69,12 +71,12 @@ void pararMotores() {
   motorDireito(0);
 }
 
-void calibrar(void *pvParams) {
+void moveCalibrar(void *pvParams) {
   digitalWrite(LED_CALIBRANDO, HIGH);
-  for (int i = 0; i < 250; i++) {
+  for(int i = 0; i <= 200; i++) {
     motorEsquerdo(100);
     motorDireito(-100);
-    qtr.calibrate();
+ 
     vTaskDelay(20 / portTICK_PERIOD_MS);
   }
   pararMotores();
@@ -82,6 +84,14 @@ void calibrar(void *pvParams) {
   calibrado = true;
   calibrando = false;
   vTaskDelete(NULL);
+}
+
+void calibrar(void *pvParams) {
+
+  for(int i = 0; i <= 200; i++){
+       qtr.calibrate();
+       vTaskDelay(20 / portTICK_PERIOD_MS);
+  }
 }
 
 void seguidor(void *pvParams) {
@@ -114,7 +124,7 @@ void setup() {
 
   ledc_timer_config_t ledc_timer = {
       .speed_mode = LEDC_MODE,
-      .duty_resolution = LEDC_TIMER_BIT,
+      .duty_resolution = LEDC_TIMER_8_BIT,
       .timer_num = LEDC_TIMER,
       .freq_hz = LEDC_BASE_FREQ,
       .clk_cfg = LEDC_AUTO_CLK};
@@ -129,16 +139,33 @@ void setup() {
 }
 
 void loop() {
+  
   if (digitalRead(BOTAO_CALIBRAR) == HIGH && !calibrando) {
     calibrando = true;
     calibrado = false;
-    xTaskCreatePinnedToCore(calibrar, "Calibrar", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(moveCalibrar, "Mover", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(calibrar, "Calibrar", 4096, NULL, 1, NULL, 1);
     delay(500);
+      qtr.read(sensorValues);
+      Serial.print(sensorValues[0] + ", "); 
+      Serial.print(sensorValues[1] + ", ");
+      Serial.print(sensorValues[2] + ", ");
+      Serial.print(sensorValues[3] + ", ");
+      Serial.print(sensorValues[4] + ", ");
+      Serial.print(sensorValues[5] + ", ");
+      Serial.print(sensorValues[6] + ", ");
+      Serial.println(sensorValues[7]);
+
+      delay(500);
+
   }
+  
 
   if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !modoSeguidor) {
     modoSeguidor = true;
     xTaskCreatePinnedToCore(seguidor, "Seguidor", 4096, NULL, 1, NULL, 1);
     delay(500);
   }
+
+
 }

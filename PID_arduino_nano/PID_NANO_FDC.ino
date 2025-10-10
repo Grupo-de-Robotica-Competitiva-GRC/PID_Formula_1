@@ -51,7 +51,7 @@ void calculaPID() {
   //if (I > 255) { I = 255; }
   //else if (I < -255) { I = -255; }
   D = erro - erroAnterior; // PID discreto
-  PID = (Kp * P) + (Ki * I) + (Kd * D);
+  PID = (Kp * P) + (K i * I) + (Kd * D);
   erroAnterior = erro;
 }
 
@@ -61,7 +61,7 @@ void calcular_erro(){
   int erro_total = 0;
   sensores_ativos = 0;
 
-  for(int i = 0; i < 6; i++){
+  for(int i = 0; i < 6; i++) {
     if(sensor_valores[i] == 1){
       erro_total += pesos[i];
       sensores_ativos += 1;
@@ -89,7 +89,7 @@ void controlaMotor() {
   // Ajuste da velocidade dos motores com os pinos PWM
   analogWrite(M1_PWM, velEsq);  // Ajusta a velocidade do motor 1
   analogWrite(M2_PWM, velDir);  // Ajusta a velocidade do motor 2
-}*/
+}
 
 void controlaMotor() {
   velEsq = velocidadeBase + PID;
