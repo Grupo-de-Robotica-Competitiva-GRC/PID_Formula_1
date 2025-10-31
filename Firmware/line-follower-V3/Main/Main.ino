@@ -19,11 +19,11 @@ Membros:
 #include <QTRSensors.h>
 #include "BluetoothSerial.h"
 #include "driver/ledc.h"
-#include "Main.h"
+// #include "Main.h"
 
 /* Bluetooth */
 
-luetoothSerial SerialBT;
+BluetoothSerial SerialBT;
 String inputString = "";
 
 /*  Pinouts  */
@@ -37,6 +37,13 @@ String inputString = "";
 #define MOTOR_A2       21
 #define MOTOR_B1       19
 #define MOTOR_B2       18
+
+/*  Booleans Values  */
+
+bool taskCriada = false;
+bool calibrado = false;
+bool modoSeguidor = false;
+bool calibrando = false;
 
 /*  QTRSensor  */
 
