@@ -1,3 +1,8 @@
+#include "Main.ino"
+
+void moveCalibrar(void *pvParams);
+void calibrar();
+
 void moveCalibrar(void *pvParams) {
   int16_t vel = 512;
   digitalWrite(LED_CALIBRANDO, HIGH);
@@ -25,7 +30,7 @@ void moveCalibrar(void *pvParams) {
 }
 
 
-void calibrar(void *pvParams) {
+void calibrar() {
 
   for(int i = 0; i <= 200; i++){
        qtr.calibrate();

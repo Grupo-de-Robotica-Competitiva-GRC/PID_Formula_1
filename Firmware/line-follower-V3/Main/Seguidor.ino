@@ -1,3 +1,9 @@
+void seguidor();
+
+extern bool modoSeguidor;
+extern uint16_t sensorValues;
+extern int velEsq, velDir;
+
 void seguidor() {
   delay(400);
   digitalWrite(LED_SEGUIDOR, HIGH);
@@ -16,11 +22,10 @@ void seguidor() {
     if (digitalRead(BOTAO_SEGUIR) == HIGH) 
     {
       modoSeguidor = false;
-      vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-      vTaskDelay(5 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
-  // encerra task
-  taskCriada = false;  
-  vTaskDelete(NULL);
+  digitalWrite(LED_SEGUIDOR, LOW);
+  pararMotores();
+  // vTaskDelete(NULL);
 }

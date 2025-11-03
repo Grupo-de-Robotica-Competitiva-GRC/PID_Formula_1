@@ -19,7 +19,7 @@ Membros:
 #include <QTRSensors.h>
 #include "BluetoothSerial.h"
 #include "driver/ledc.h"
-// #include "Main.h"
+// #include "Main.ino"
 
 /* Bluetooth */
 
@@ -54,6 +54,8 @@ uint16_t sensorValues[numSensors];
 
 /*  PID Constants and Variables  */
 
+float erro_pesso[numSensors] = {-100, -16, -7, 0, 0, 7, 16, 100};
+
 float Ki = 0; 
 int Kp = 21;  
 int Kd = 35;  
@@ -64,7 +66,30 @@ int16_t erro = 0;  // cálculo do erro
 
 /*  Motors velocity  */
 
-int bVelo = 700, aVelo =700;
+int bVelo = 800, aVelo = 800;
+
+/*  Protótipos de funções  */
+
+// Bluetooth
+extern void lendoMensagem(String cmd);
+extern void atualiza_variaveis();
+
+// Motores
+extern void move_motorA(int16_t vel);
+extern void move_motorB(int16_t vel);
+extern void pararMotores();
+extern void controlaMotor();
+
+// PID
+extern void calculaPID();
+extern void calcula_erro();
+
+// QTR
+extern void moveCalibrar(void *pvParams);
+extern void calibrar();
+
+// Seguidor
+extern void seguidor();
 
 void setup() {
 
@@ -97,12 +122,12 @@ void loop() {
     digitalWrite(LED_CALIBRANDO, HIGH);
     
     qtr.read(sensorValues);
-    xTaskCreatePinnedToCore(moveCalibrar, "Mover", 4096, NULL, 1, NULL, 1);
-    xTaskCreatePinnedToCore(calibrar, "Calibrar", 4096, NULL, 1, NULL, 0);
+    // xTaskCreatePinnedToCore(moveCalibrar, "Mover", 4096, NULL, 1, NULL, 1);
+    // xTaskCreatePinnedToCore(calibrar, "Calibrar", 4096, NULL, 1, NULL, 0);
     // calibrar();
     // for(int i=0; i<=400; i++){
     //   moveCalibrar(TaskParameters_t);
-    //   calibrar();
+    calibrar();
     //   vTaskDelay(10 / portTICK_PERIOD_MS);
     // }
 
@@ -116,10 +141,11 @@ void loop() {
   // for (uint8_t i = 0; i < 8; i++) {Serial.printf("%d ", sensorValues[i]);}
   // delay(200);
   calibrado = true;
+  modoSeguidor = false;
   // bool taskCriada = false;  // controle para não criar a task várias vezes
-  if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !taskCriada) {
+  if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !modoSeguidor) {
     modoSeguidor = true;
-    taskCriada = true;
+    // taskCriada = true;
     // xTaskCreatePinnedToCore(seguidor, "Seguidor", 4096, NULL, 1, NULL, 0);
     seguidor();
     delay(300);

@@ -1,3 +1,11 @@
+#include "Main.ino"
+
+void move_motorA(int16_t vel);
+void move_motorB(int16_t vel);
+void pararMotores();
+void controlaMotor();
+
+
 void move_motorA(int16_t vel)
 {
   vel *= 0.65;
