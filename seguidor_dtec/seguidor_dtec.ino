@@ -17,25 +17,38 @@ String inputString = "";
 #define MOTOR_B1       19
 #define MOTOR_B2       18
 
+enum class Direcao 
+{
+  RETO,
+  DIREITA,
+  ESQUERDA
+};
+
 
 QTRSensors qtr;
+Direcao direcao = Direcao::RETO;
 bool calibrado = false;
 bool modoSeguidor = false;
 bool calibrando = false;
 uint8_t  sensorsPin[8] = {34, 35, 32, 33, 27, 26, 25, 14};
 uint16_t sensorValues[8];
+int8_t sensorValuesDigital[8];
+int16_t bit_pesos[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+int SumSensoresAtivos;
+int bitValue = 0;
+bool podeParar = false;
 float Ki = 0; // para não acumular tanto erro
-int Kp = 21;  //ajustar paramento
-int Kd = 35;  //ajusta tamebem algem ve tutorial como ajustar.
+int Kp = 13;  //ajustar paramento
+int Kd = 20;  //ajusta tamebem algem ve tutorial como ajustar.
 
 int P = 0, I = 0, D = 0, PID = 0; // variáveis PID
 int16_t velEsq = 0, velDir = 0, erroAnterior = 0; // controle dos motores
 int16_t erro = 0;  // cálculo do erro
-int bVelo = 700, aVelo =700;
+int bVelo = 800, aVelo = 800;
 
 void move_motorA(int16_t vel)
 {
-  vel *= 0.65;
+  vel *= 0.625;
   if (vel >= 0)
   {
     ledcWrite(MOTOR_A1, vel);
@@ -85,6 +98,70 @@ void calculaPID() {
   erroAnterior = erro;
 }
 
+// void transforma_digital()
+// {
+//   for (size_t i = 0; i <= numSensors; i++)
+//   {
+//     if (sensorValues[i] >= 3900)
+//     {
+//       sensorValuesDigital[i] = 1;
+//     }
+//     else 
+//     {
+//       sensorValuesDigital[i] = 0;
+//     }
+//   }
+// }
+
+void define_direcao()
+{
+  if (bitValue == 0b11111000 || bitValue == 0b11111100 || bitValue == 0b11110000)
+  {
+    direcao = Direcao::ESQUERDA;
+  }
+  else if (bitValue == 0b00011111 || bitValue == 0b00001111 || bitValue == 0b00111111)
+  {
+    direcao = Direcao::DIREITA;
+  }
+}
+
+void vira_direita(int16_t velA, int16_t velB)
+{
+  while (sensorValuesDigital[4] != 1)
+  {
+    calcula_erro();
+    move_motorA(velA);
+    move_motorB(-velB);
+  }
+  direcao = Direcao::RETO;
+}
+
+void vira_esquerda(int16_t velA, int16_t velB)
+{
+  while (sensorValuesDigital[3] != 1)
+  {
+    calcula_erro();
+    move_motorA(-velA);
+    move_motorB(velB);
+  }
+  direcao = Direcao::RETO;
+}
+
+
+void curva_90()
+{
+  int16_t velA, velB;
+  velA = 800; velB = 800;
+  if (direcao == Direcao::DIREITA)
+  {
+    vira_direita(velA, velB);
+  }
+  else if (direcao == Direcao::ESQUERDA)
+  {
+    vira_esquerda(velA, velB);
+  }
+}
+
 
 void calcula_erro()
 {
@@ -93,27 +170,32 @@ void calcula_erro()
    pS: nao descomenta esse demtro*/
   erro = 0;
   // float erro_pesos[8] = {-(1 / 50), -(1 / 70), (-1 / 100), -(1 / 120),  (1 / 120), (1 / 100), (1 / 70), (1 / 50) };
-  float erro_pesso[8] = {-100, -16, -7, 0, 0, 7, 16, 100};
+  float erro_pesso[8] = {-20, -7, -7, 0, 0, 7, 7, 20};
   qtr.read(sensorValues);
+  bitValue = 0;
+  SumSensoresAtivos = 0;
+
   for (uint8_t i = 0; i < 8; i++)
   {
-    if (sensorValues[i] > 3900)
+    if (sensorValues[i] >= 3900)
     {
+      sensorValuesDigital[i] = 1;
       erro += erro_pesso[i];  
+      SumSensoresAtivos += sensorValuesDigital[i];
+      bitValue += bit_pesos[i] * sensorValuesDigital[i];
+    }
+    else
+    {
+      sensorValuesDigital[i] = 0;
     }
   }
-  Serial.println(erro);
-  // for(uint8_t i = 0; i < 8; i++)  
-  // {
-  //   erro += erro_pesso[i] * sensorValues[i];
-  // }
 }
 
 
 void controlaMotor() {
   if (PID >= 0) {
-    velEsq = bVelo - PID;
-    velDir = aVelo  + PID;
+    velEsq = bVelo - PID; // PID;
+    velDir = aVelo + PID;
   } else {
     velEsq = bVelo - PID;
     velDir = aVelo + PID;
@@ -195,7 +277,7 @@ void atualiza_variaveis(){
 }
 
 void seguidor() {
-  delay(400);
+  // delay(400);
   digitalWrite(LED_SEGUIDOR, HIGH);
   while (modoSeguidor) {
     
@@ -205,15 +287,42 @@ void seguidor() {
     controlaMotor();
     move_motorA(velEsq);
     move_motorB(velDir);
-    Serial.print("Velesq: ");
-    Serial.println(velEsq);
-    Serial.print("Veldir: ");
-    Serial.println(velDir);
-    if (digitalRead(BOTAO_SEGUIR) == HIGH) 
+    define_direcao();
+    if (SumSensoresAtivos == 0)
+    {
+      delay(30);
+      curva_90();
+    }
+    SerialBT.print("Velesq: ");
+    SerialBT.println(velEsq);
+    SerialBT.print("Veldir: ");
+    SerialBT.println(velDir);
+    SerialBT.print("erro ");
+    SerialBT.println(erro);
+    if (digitalRead(BOTAO_SEGUIR) == HIGH && podeParar) 
     {
       modoSeguidor = false;
     }
     vTaskDelay(10 / portTICK_PERIOD_MS);
+    podeParar = true;
+      SerialBT.print("PID ");
+      SerialBT.println(PID);
+      SerialBT.print("bit_value ");
+      SerialBT.println(bitValue, BIN);
+      SerialBT.print("sum_sensores ");
+      SerialBT.println(SumSensoresAtivos);
+      // SerialBT.print("direcao ");
+      // if (direcao == Direcao::RETO)
+      //   SerialBT.println("reto");
+      // else if (direcao == Direcao::ESQUERDA)
+      //   SerialBT.println("esquerda");
+      // else 
+      //   SerialBT.println("direita");
+      // for (int i = 0; i < 8; i++)
+      // {
+      //   SerialBT.printf("%d ", sensorValues[i]);
+      // }
+      // SerialBT.println(); 
   }
   digitalWrite(LED_SEGUIDOR, LOW);
   pararMotores();
@@ -251,7 +360,7 @@ void setup() {
     
     if (digitalRead(BOTAO_CALIBRAR) == HIGH && !calibrando) {
       calibrando = true;
-      calibrado = false;
+      calibrado = true;
 
       digitalWrite(LED_CALIBRANDO, HIGH);
       
@@ -269,14 +378,24 @@ void setup() {
     // qtr.read()
     // for (uint8_t i = 0; i < 8; i++) {Serial.printf("%d ", sensorValues[i]);}
     // delay(200);
-    modoSeguidor = false;
-    calibrado = true;
+    // modoSeguidor = false;
+    // calibrado = true;
     if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !modoSeguidor) {
       modoSeguidor = true;
       // xTaskCreatePinnedToCore(seguidor, "Seguidor", 4096, NULL, 1, NULL, 1);
+      // delay(500);
       seguidor();
-      delay(500);
+
     }
+
+
+
+    for (int i = 0; i < 8; i++)
+    {
+      Serial.printf("%d ", sensorValues[i]);
+    }
+    Serial.println();
+    Serial.printf("-------------------------------\n");
 
 
     if(SerialBT.available()){
