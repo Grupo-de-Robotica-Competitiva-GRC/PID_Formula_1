@@ -38,17 +38,17 @@ int SumSensoresAtivos;
 int bitValue = 0;
 bool podeParar = false;
 float Ki = 0; // para não acumular tanto erro
-int Kp = 13;  //ajustar paramento
-int Kd = 20;  //ajusta tamebem algem ve tutorial como ajustar.
+int Kp = 30;  //ajustar paramento
+int Kd = 38;  //ajusta tamebem algem ve tutorial como ajustar.
 
 int P = 0, I = 0, D = 0, PID = 0; // variáveis PID
 int16_t velEsq = 0, velDir = 0, erroAnterior = 0; // controle dos motores
 int16_t erro = 0;  // cálculo do erro
-int bVelo = 800, aVelo = 800;
+int bVelo = 400, aVelo = 400;
 
 void move_motorA(int16_t vel)
 {
-  vel *= 0.625;
+
   if (vel >= 0)
   {
     ledcWrite(MOTOR_A1, vel);
@@ -65,7 +65,7 @@ void move_motorA(int16_t vel)
 
 void move_motorB(int16_t vel)//vel e duty
 {
-  vel *= -1;//o motor B  o da esquerda olhando de fren tem menos torque por isso o fator. 
+  //o motor B  o da esquerda olhando de fren tem menos torque por isso o fator. 
   //TODO tem que fazer um umento de potencia gradual nesse motor  para ele nao sair no supetao para esquerda o torque dele  e alto.
   if (vel >= 0)
   {
@@ -151,7 +151,7 @@ void vira_esquerda(int16_t velA, int16_t velB)
 void curva_90()
 {
   int16_t velA, velB;
-  velA = 800; velB = 800;
+  velA = 300; velB = 300;
   if (direcao == Direcao::DIREITA)
   {
     vira_direita(velA, velB);
@@ -378,7 +378,7 @@ void setup() {
     // qtr.read()
     // for (uint8_t i = 0; i < 8; i++) {Serial.printf("%d ", sensorValues[i]);}
     // delay(200);
-    // modoSeguidor = false;
+    // modoSeguidor = false; 2
     // calibrado = true;
     if (digitalRead(BOTAO_SEGUIR) == HIGH && calibrado && !modoSeguidor) {
       modoSeguidor = true;
